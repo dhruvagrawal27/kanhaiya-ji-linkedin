@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Loader2, Send, Edit3, CheckCircle, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Send, Edit3, CheckCircle, Sparkles, AlertCircle, Link } from 'lucide-react';
 import { FloralDecorations } from './FloralDecorations';
 
 const GENERATE_WEBHOOK = "/api/generate";
@@ -22,6 +22,19 @@ export default function App() {
   const [isPosting, setIsPosting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [linkedInStatus, setLinkedInStatus] = useState<{ connected: boolean; name?: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/auth/linkedin/status")
+      .then(r => r.json())
+      .then(setLinkedInStatus)
+      .catch(() => setLinkedInStatus({ connected: false }));
+
+    // Check if we just came back from OAuth
+    if (window.location.search.includes("linkedin=connected")) {
+      window.history.replaceState({}, "", "/");
+    }
+  }, []);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +82,7 @@ export default function App() {
       const res = await fetch(ITERATE_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post: currentPost, changes })
+        body: JSON.stringify({ post: currentPost, changes: changes })
       });
       
       if (!res.ok) {
@@ -77,16 +90,29 @@ export default function App() {
       }
       
       const data = await res.json();
-      
-      if (!data || !data[0] || !data[0].output || !data[0].output.post) {
+      console.log("Iterate raw response:", JSON.stringify(data));
+
+      // Support multiple response formats from n8n
+      let newPost: string | null = null;
+      if (Array.isArray(data) && data[0]?.output?.post) {
+        newPost = data[0].output.post;
+      } else if (Array.isArray(data) && data[0]?.post) {
+        newPost = data[0].post;
+      } else if (data?.output?.post) {
+        newPost = data.output.post;
+      } else if (data?.post) {
+        newPost = data.post;
+      } else if (typeof data === 'string') {
+        newPost = data;
+      }
+
+      if (!newPost) {
         console.error("Unexpected response format:", data);
         throw new Error("Received an unexpected response format from the server.");
       }
       
-      const newPost = data[0].output.post;
-      
       setCurrentPost(newPost);
-      setHistory(prev => [...prev, { id: Date.now().toString(), post: newPost, instruction: changes }]);
+      setHistory(prev => [...prev, { id: Date.now().toString(), post: newPost!, instruction: changes }]);
       setChanges('');
     } catch (err) {
       console.error("Failed to iterate:", err);
@@ -96,16 +122,31 @@ export default function App() {
     }
   };
 
+  const formatPostForLinkedIn = (text: string): string => {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '$1')      // Remove **bold**
+      .replace(/\*(.+?)\*/g, '$1')           // Remove *italic*
+      .replace(/__(.+?)__/g, '$1')           // Remove __bold__
+      .replace(/_(.+?)_/g, '$1')             // Remove _italic_
+      .replace(/^#{1,6}\s+/gm, '')           // Remove # headings
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1')    // Convert [text](url) → text
+      .replace(/`(.+?)`/g, '$1')             // Remove `inline code`
+      .replace(/→/g, '→')                   // Keep arrows as-is
+      .trim();
+  };
+
   const handlePublish = async () => {
     if (!currentPost) return;
     
+    const formattedPost = formatPostForLinkedIn(currentPost);
+
     setIsPosting(true);
     setError(null);
     try {
       const res = await fetch(POST_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post: currentPost })
+        body: JSON.stringify({ post: formattedPost })
       });
       
       if (!res.ok) {
@@ -113,11 +154,18 @@ export default function App() {
       }
       
       const data = await res.json();
-      if (data && data[0] && data[0].posted === "yes") {
+      console.log("Publish raw response:", JSON.stringify(data));
+
+      // Support: [{"posted":"yes"}] or {"posted":"yes"} or any truthy posted field
+      const posted =
+        (Array.isArray(data) && data[0]?.posted) ||
+        data?.posted;
+
+      if (posted === "yes" || posted === true || posted === 1) {
         setIsSuccess(true);
         setTimeout(() => setIsSuccess(false), 5000);
       } else {
-        throw new Error("Failed to confirm publication.");
+        throw new Error(`Failed to confirm publication. Server said: ${JSON.stringify(data)}`);
       }
     } catch (err) {
       console.error("Failed to post:", err);
@@ -153,6 +201,38 @@ export default function App() {
         <h1 className="font-serif text-[2.2rem] font-normal m-0 text-text-main text-center">
           Post Weaver
         </h1>
+
+        {/* LinkedIn Connection Status — always visible at top */}
+        <div className="flex items-center justify-between bg-[#f0f7ff] border border-[#d0e8f7] rounded-2xl px-4 py-3">
+          {linkedInStatus?.connected ? (
+            <>
+              <div className="flex items-center gap-2 text-[13px] text-[#0077B5] font-semibold">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                Connected as <span className="font-bold">{linkedInStatus.name}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => fetch("/auth/linkedin/logout").then(() => setLinkedInStatus({ connected: false }))}
+                className="text-[11px] text-text-muted underline bg-transparent border-none cursor-pointer hover:text-red-500"
+              >
+                Disconnect
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-[13px] text-text-muted">
+                <AlertCircle className="w-4 h-4 text-amber-400" />
+                LinkedIn not connected
+              </div>
+              <a
+                href="/auth/linkedin"
+                className="flex items-center gap-1.5 bg-[#0077B5] text-white text-[12px] font-semibold px-4 py-1.5 rounded-full no-underline hover:opacity-90 transition-opacity"
+              >
+                <Link className="w-3.5 h-3.5" /> Connect
+              </a>
+            </>
+          )}
+        </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-3 text-sm">
@@ -229,7 +309,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handlePublish}
-                  disabled={isPosting || isSuccess}
+                  disabled={isPosting || isSuccess || !linkedInStatus?.connected}
                   className="border-none py-[14px] rounded-[50px] cursor-pointer text-[13px] font-semibold uppercase tracking-[0.5px] transition-opacity bg-sage text-white disabled:opacity-70 flex items-center justify-center gap-2 hover:opacity-90"
                 >
                   {isPosting ? (
