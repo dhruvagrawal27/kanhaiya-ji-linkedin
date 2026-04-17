@@ -177,7 +177,7 @@ async function startServer() {
         headers: {
           Authorization: `Bearer ${linkedInToken.accessToken}`,
           "Content-Type": "application/json",
-          "LinkedIn-Version": "202501",
+          "LinkedIn-Version": "202604",
           "X-Restli-Protocol-Version": "2.0.0",
         },
         body: JSON.stringify({
