@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: 'Georgia', 'Times New Roman', Times, serif;
+  --font-sans: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+
+  --color-cream: #fdf8f3;
+  --color-petal: #f7ede8;
+  --color-blush: #e8c9be;
+  --color-rose: #c97b6a;
+  --color-deep-rose: #a85848;
+  --color-sage: #8aaa8e;
+  --color-sage-light: #c5dbc8;
+  --color-text-main: #2e1f1a;
+  --color-text-muted: #7a5c54;
+  --color-border-soft: #e5d2cb;
+  --color-white: #ffffff;
+}
+
+:root {
+  --cream: #fdf8f3;
+  --petal: #f7ede8;
+  --blush: #e8c9be;
+  --rose: #c97b6a;
+  --deep-rose: #a85848;
+  --sage: #8aaa8e;
+  --sage-light: #c5dbc8;
+  --text: #2e1f1a;
+  --text-muted: #7a5c54;
+  --border: #e5d2cb;
+  --white: #ffffff;
+}
+
+body {
+  background-color: var(--cream);
+  color: var(--text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: 
+    radial-gradient(ellipse at top right, var(--blush), transparent 40%),
+    radial-gradient(ellipse at bottom left, var(--sage-light), transparent 40%);
+  opacity: 0.3;
+}
