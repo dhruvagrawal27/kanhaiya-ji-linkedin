@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Send, Edit3, CheckCircle, Sparkles, AlertCircle, Link, RotateCcw, Clock, ChevronRight, Zap } from 'lucide-react';
+import { Loader2, Send, Edit3, CheckCircle, PenLine, AlertCircle, Link, RotateCcw, Clock, ChevronRight } from 'lucide-react';
 
 const GENERATE_WEBHOOK = "/api/generate";
 const ITERATE_WEBHOOK = "/api/iterate";
@@ -158,7 +158,7 @@ export default function App() {
       <header className="relative z-10 w-full max-w-[680px] flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0077B5] to-[#005885] flex items-center justify-center shadow-lg shadow-[#0077B5]/30">
-            <Zap className="w-4 h-4 text-white" />
+            <PenLine className="w-4 h-4 text-white" />
           </div>
           <div>
             <h1 className="text-white font-bold text-[16px] tracking-tight leading-none">Post Weaver</h1>
@@ -273,7 +273,7 @@ export default function App() {
                 {isLoading ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Crafting your post...</>
                 ) : (
-                  <><Sparkles className="w-4 h-4" /> Generate Post</>
+                  <><PenLine className="w-4 h-4" /> Generate Post</>
                 )}
                 {!isLoading && <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-all" />}
               </button>
