@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        "LinkedIn-Version": "202411",
+        "LinkedIn-Version": "202504",
         "X-Restli-Protocol-Version": "2.0.0",
       },
       body: JSON.stringify({
@@ -33,7 +33,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.json([{ posted: "yes" }]);
     } else {
       const err = await response.text();
-      res.status(500).json({ error: "LinkedIn API error", details: err });
+      console.error(`[post] LinkedIn ${response.status}:`, err);
+      res.status(500).json({ error: `LinkedIn API returned ${response.status}`, details: err });
     }
   } catch (err) {
     res.status(500).json({ error: "Failed to post", details: String(err) });
