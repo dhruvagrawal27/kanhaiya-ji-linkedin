@@ -94,14 +94,20 @@ export default function App() {
   };
 
   const formatPostForLinkedIn = (text: string): string =>
+    // Process line-by-line so regex never crosses paragraph boundaries
     text
-      .replace(/\*\*(.+?)\*\*/gs, '$1')
-      .replace(/\*(.+?)\*/gs, '$1')
-      .replace(/__(.+?)__/gs, '$1')
-      .replace(/_(.+?)_/gs, '$1')
-      .replace(/^#{1,6}\s+/gm, '')
-      .replace(/\[(.+?)\]\(.+?\)/g, '$1')
-      .replace(/`(.+?)`/g, '$1')
+      .split('\n')
+      .map(line =>
+        line
+          .replace(/\*\*(.+?)\*\*/g, '$1')   // bold (within line only — no s flag)
+          .replace(/\*(.+?)\*/g, '$1')         // italic
+          .replace(/__(.+?)__/g, '$1')         // bold alt
+          .replace(/_([^_]+)_/g, '$1')         // italic alt (must not be part of a word)
+          .replace(/^#{1,6}\s+/, '')           // headings
+          .replace(/\[(.+?)\]\(.+?\)/g, '$1') // links
+          .replace(/`(.+?)`/g, '$1')           // inline code
+      )
+      .join('\n')
       .trim();
 
   const handlePublish = async () => {
